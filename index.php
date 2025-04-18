@@ -72,7 +72,7 @@
         <div class="col-md-3">
             <div class="dashboard-section">
                 <a href="pages/add_stock.php">
-                    <img src="images/adding stock.jpg" alt="Add Stock" class="img-fluid">
+                    <img src="images/adding_stock.png" alt="Add Stock" class="img-fluid">
                     <h5>Add Stock</h5>
                 </a>
             </div>
@@ -82,7 +82,7 @@
         <div class="col-md-3">
             <div class="dashboard-section">
                 <a href="pages/display_stock.php">
-                    <img src="images/display_stock.jpg" alt="Display Stock" class="img-fluid">
+                    <img src="images/update_stock.png" alt="Display Stock" class="img-fluid">
                     <h5>Display Stock</h5>
                 </a>
             </div>
@@ -92,7 +92,7 @@
         <div class="col-md-3">
             <div class="dashboard-section">
                 <a href="pages/create_bill.php">
-                    <img src="images/invoice_generation.jpg" alt="Create Bill" class="img-fluid">
+                    <img src="images/invoice_generation.png" alt="Create Bill" class="img-fluid">
                     <h5>Invoice Generation</h5>
                 </a>
             </div>
@@ -102,7 +102,7 @@
         <div class="col-md-3">
             <div class="dashboard-section">
                 <a href="pages/sales_reports.php">
-                    <img src="images/sales_reports.jpg" alt="View Reports" class="img-fluid">
+                    <img src="images/sales_reports.png" alt="View Reports" class="img-fluid">
                     <h5>Sales Reports and Analytics</h5>
                 </a>
             </div>
@@ -114,7 +114,7 @@
         <div class="col-md-3">
             <div class="dashboard-section">
                 <a href="pages/vendors.php">
-                    <img src="images/vendor_management.jpg" alt="Vendor Management" class="img-fluid">
+                    <img src="images/vendor_management.png" alt="Vendor Management" class="img-fluid">
                     <h5>Vendor Management</h5>
                 </a>
             </div>
@@ -124,7 +124,7 @@
         <div class="col-md-3">
             <div class="dashboard-section">
                 <a href="pages/expenses.php">
-                    <img src="images/expenses_tracking.jpg" alt="Expense Tracking" class="img-fluid">
+                    <img src="images/expense_tracking.png" alt="Expense Tracking" class="img-fluid">
                     <h5>Expense Tracking</h5>
                 </a>
             </div>
@@ -134,7 +134,7 @@
         <div class="col-md-3">
             <div class="dashboard-section">
                 <a href="pages/customers.php">
-                    <img src="images/customer_management.jpg" alt="Customer Management" class="img-fluid">
+                    <img src="images/customer_management.png" alt="Customer Management" class="img-fluid">
                     <h5>Customer Management</h5>
                 </a>
             </div>
@@ -144,7 +144,7 @@
         <div class="col-md-3">
             <div class="dashboard-section">
                 <a href="pages/payment_tracking.php">
-                    <img src="images/payment_tracking.jpg" alt="Payment Tracking" class="img-fluid">
+                    <img src="images/payment_tracking.png" alt="Payment Tracking" class="img-fluid">
                     <h5>Payment Tracking</h5>
                 </a>
             </div>
