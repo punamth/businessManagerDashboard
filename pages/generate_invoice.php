@@ -1,114 +1,100 @@
 <?php
+include '../includes/db_connect.php';
 require('../fpdf.php');
-include '../includes/db_connect.php'; // Database connection
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $company_name = $_POST['company_name'];
+    // Collect form data
+    $invoice_date = $_POST['invoice_date'];
+    $company_name = strtoupper($_POST['company_name']); // Make company name UPPERCASE
     $company_address = $_POST['company_address'];
     $customer_name = $_POST['customer_name'];
     $customer_address = $_POST['customer_address'];
-    $invoice_date = $_POST['invoice_date']; // Capture the date
-    $items = $_POST['item_name'];
+    $item_names = $_POST['item_name'];
+    $quantities = $_POST['quantity'];
+    $prices = $_POST['price'];
+    $total_amount = $_POST['total_amount'];
+    $amount_paid = $_POST['amount_paid'];
+    $payment_method = isset($_POST['payment_method']) ? $_POST['payment_method'] : 'None';
 
-    // Ensure numeric values
-    $quantities = array_map('floatval', $_POST['quantity']);
-    $prices = array_map('floatval', $_POST['price']);
+    $amount_due = $total_amount - $amount_paid;
 
-    $amount_paid = floatval($_POST['amount_paid']);
-    $payment_method = $_POST['payment_method'];
-
-    // Calculate total amount
-    $total_amount = 0;
-    foreach ($items as $key => $item) {
-        $total_amount += $quantities[$key] * $prices[$key];
-    }
-    $balance_due = $total_amount - $amount_paid;
-
-    // Insert invoice into the database
-    $stmt = $conn->prepare("INSERT INTO invoices (company_name, company_address, customer_name, customer_address, invoice_date, total_amount, amount_paid, balance_due, payment_method) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("sssssddds", $company_name, $company_address, $customer_name, $customer_address, $invoice_date, $total_amount, $amount_paid, $balance_due, $payment_method);
+    // Insert into database (optional, if you want to save invoices)
+    $stmt = $conn->prepare("INSERT INTO invoices (invoice_date, company_name, company_address, customer_name, customer_address, total_amount, amount_paid, balance_due, payment_method) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("ssssssdds", $invoice_date, $company_name, $company_address, $customer_name, $customer_address, $total_amount, $amount_paid, $amount_due, $payment_method);
     $stmt->execute();
     $invoice_id = $stmt->insert_id;
     $stmt->close();
 
-    // Insert items into the database
-    $stmt = $conn->prepare("INSERT INTO invoice_items (invoice_id, item_name, quantity, price, total) VALUES (?, ?, ?, ?, ?)");
-    foreach ($items as $key => $item) {
-        $total = $quantities[$key] * $prices[$key];
-        $stmt->bind_param("issdd", $invoice_id, $item, $quantities[$key], $prices[$key], $total);
+    $stmt = $conn->prepare("INSERT INTO invoice_items (invoice_id, item_name, quantity, price) VALUES (?, ?, ?, ?)");
+    foreach ($item_names as $index => $item_name) {
+        $quantity = $quantities[$index];
+        $price = $prices[$index];
+        $stmt->bind_param("isid", $invoice_id, $item_name, $quantity, $price);
         $stmt->execute();
     }
     $stmt->close();
 
-    // Start output buffering
-    ob_start();
-
-    // Generate PDF invoice
+    // Start FPDF
     $pdf = new FPDF();
     $pdf->AddPage();
-    $pdf->SetFont('Arial', 'B', 16);
-    $pdf->Cell(190, 10, strtoupper($company_name), 0, 1, 'C');
 
-    // Company address
-    $pdf->SetFont('Arial', '', 10);
-    $pdf->Cell(190, 8, $company_address, 0, 1, 'C');
-    $pdf->Ln(5);
-
-    // Invoice Date
-    $pdf->SetFont('Arial', '', 12);
-    $pdf->Cell(100, 8, "Invoice Date: " . $invoice_date, 0, 1);
+    // Company Name
+    $pdf->SetFont('Arial', 'B', 20); // Big, Bold
+    $pdf->Cell(0, 10, $company_name, 0, 1, 'C'); // Centered
     $pdf->Ln(2);
 
-    // Customer details
-    $pdf->Cell(100, 8, "Customer: " . $customer_name, 0, 1);
-    $pdf->Cell(100, 8, "Address: " . $customer_address, 0, 1);
-    $pdf->Ln(5);
+    // Company Address
+    $pdf->SetFont('Arial', '', 12); // Smaller font
+    $pdf->Cell(0, 8, $company_address, 0, 1, 'C'); // Centered
+    $pdf->Ln(10);
 
-    // Table Headers
-    $pdf->SetFont('Arial', 'B', 12);
-    $pdf->SetFillColor(200, 200, 200);
-    $pdf->Cell(80, 10, 'Item', 1, 0, 'C', true);
-    $pdf->Cell(30, 10, 'Quantity', 1, 0, 'C', true);
-    $pdf->Cell(40, 10, 'Price', 1, 0, 'C', true);
-    $pdf->Cell(40, 10, 'Total', 1, 1, 'C', true);
-
-    // Table Data
+    // Invoice Information
     $pdf->SetFont('Arial', '', 12);
-    foreach ($items as $key => $item) {
-        $total = $quantities[$key] * $prices[$key];
-        $pdf->Cell(80, 10, $item, 1);
-        $pdf->Cell(30, 10, $quantities[$key], 1, 0, 'C');
-        $pdf->Cell(40, 10, number_format($prices[$key], 2), 1, 0, 'R');
-        $pdf->Cell(40, 10, number_format($total, 2), 1, 1, 'R');
+    $pdf->Cell(100, 8, 'Invoice Date: ' . $invoice_date, 0, 1);
+    $pdf->Cell(100, 8, 'Customer Name: ' . $customer_name, 0, 1);
+    $pdf->Cell(100, 8, 'Customer Address: ' . $customer_address, 0, 1);
+    $pdf->Ln(10);
+
+    // Items Table Header
+    $pdf->SetFont('Arial', 'B', 12);
+    $pdf->Cell(10, 10, 'S.N.', 1, 0, 'C');
+    $pdf->Cell(80, 10, 'Item Name', 1, 0, 'C');
+    $pdf->Cell(30, 10, 'Quantity', 1, 0, 'C');
+    $pdf->Cell(30, 10, 'Price', 1, 0, 'C');
+    $pdf->Cell(40, 10, 'Subtotal', 1, 1, 'C');
+
+    // Items Table Data
+    $pdf->SetFont('Arial', '', 12);
+    foreach ($item_names as $index => $item_name) {
+        $quantity = $quantities[$index];
+        $price = $prices[$index];
+        $subtotal = $quantity * $price;
+
+        $pdf->Cell(10, 10, $index + 1, 1, 0, 'C');
+        $pdf->Cell(80, 10, $item_name, 1, 0);
+        $pdf->Cell(30, 10, $quantity, 1, 0, 'C');
+        $pdf->Cell(30, 10, number_format($price, 2), 1, 0, 'C');
+        $pdf->Cell(40, 10, number_format($subtotal, 2), 1, 1, 'C');
     }
 
-    // Amount Paid and Balance
-    $pdf->Cell(150, 10, "Amount Paid", 1, 0, 'R');
-    $pdf->Cell(40, 10, number_format($amount_paid, 2), 1, 1, 'R');
+    $pdf->Ln(10);
 
-    $pdf->Cell(150, 10, "Balance Due", 1, 0, 'R');
-    $pdf->Cell(40, 10, number_format($balance_due, 2), 1, 1, 'R');
-    $pdf->Ln(5);
-
-    // Payment Method (Now in a Proper Box)
-    $pdf->Cell(150, 10, "Payment Method", 1, 0, 'R');
-    $pdf->Cell(40, 10, $payment_method, 1, 1, 'R');
-    $pdf->Ln(5);
-
-    // Grand Total (Now at the bottom)
+    // Summary
     $pdf->SetFont('Arial', 'B', 12);
-    $pdf->Cell(150, 10, "Grand Total", 1, 0, 'R');
-    $pdf->Cell(40, 10, number_format($total_amount, 2), 1, 1, 'R');
+    $pdf->Cell(150, 10, 'Total Amount:', 0, 0, 'R');
+    $pdf->Cell(40, 10, number_format($total_amount, 2), 0, 1, 'C');
 
-    // Prevent previous output issues
-    ob_end_clean();
+    $pdf->Cell(150, 10, 'Amount Paid:', 0, 0, 'R');
+    $pdf->Cell(40, 10, number_format($amount_paid, 2), 0, 1, 'C');
 
-    // Save PDF to server
-    $invoice_folder = __DIR__ . '/../invoices/';
-    $pdf_filename = $invoice_folder . "invoice_" . $invoice_id . ".pdf";
-    $pdf->Output('F', $pdf_filename);
+    $pdf->Cell(150, 10, 'Amount Due:', 0, 0, 'R');
+    $pdf->Cell(40, 10, number_format($amount_due, 2), 0, 1, 'C');
 
-    // Output PDF to browser
-    $pdf->Output();
+    $pdf->Cell(150, 10, 'Payment Method:', 0, 0, 'R');
+    $pdf->Cell(40, 10, $payment_method, 0, 1, 'C');
+
+    // Output PDF
+    $pdf->Output('I', 'Invoice_' . $invoice_id . '.pdf');
+
 }
 ?>

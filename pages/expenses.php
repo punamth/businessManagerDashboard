@@ -5,6 +5,11 @@
 <head>
     <title>Expenses</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <a href="../index.php" class="btn btn-outline-primary">
+    <i class="bi bi-house-door-fill"></i> Home
+    </a>
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 </head>
 <body>
 <div class="container mt-5">
@@ -48,7 +53,9 @@
                         <td>{$row['amount']}</td>
                         <td>{$row['date']}</td>
                         <td>
-                            <a href='edit_expenses.php?id={$row['expense_id']}' class='btn btn-warning btn-sm'>Edit</a>
+                            <a href='edit_expenses.php?id={$row['expense_id']}' class='btn btn-sm btn-primary'>
+                                <i class='bi bi-pencil-square'></i> Edit
+                            </a>
                             <a href='expenses.php?delete={$row['expense_id']}' class='btn btn-danger btn-sm' onclick=\"return confirm('Are you sure?');\">Delete</a>
                         </td>
                     </tr>";
@@ -68,7 +75,7 @@ if (isset($_POST['add_expense'])) {
 
     $stmt = $conn->prepare("INSERT INTO expenses (description, amount, date) VALUES (?, ?, ?)");
     $stmt->bind_param("sds", $description, $amount, $date);
-    
+
     if ($stmt->execute()) {
         header('Location: expenses.php');
         exit();
@@ -81,10 +88,10 @@ if (isset($_POST['add_expense'])) {
 // Delete Expense Logic
 if (isset($_GET['delete'])) {
     $expense_id = $_GET['delete'];
-    
+
     $stmt = $conn->prepare("DELETE FROM expenses WHERE expense_id = ?");
     $stmt->bind_param("i", $expense_id);
-    
+
     if ($stmt->execute()) {
         header('Location: expenses.php');
         exit();

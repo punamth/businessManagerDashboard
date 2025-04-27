@@ -32,7 +32,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if ($stmt->execute()) {
         // Registration successful
-        echo "Registration successful! <a href='login.php'>Login here</a>";
+        header("Location: login.php");
     } else {
         // Handle errors
         echo "Error: " . $stmt->error;

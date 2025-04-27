@@ -9,6 +9,11 @@ include '../includes/db_connect.php'; // Database connection
 <head>
     <title>Customers</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <a href="../index.php" class="btn btn-outline-primary">
+    <i class="bi bi-house-door-fill"></i> Home
+    </a>
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 </head>
 <body>
 <div class="container mt-5">
@@ -58,7 +63,9 @@ include '../includes/db_connect.php'; // Database connection
                 <td>{$row['phone']}</td>
                 <td>{$row['address']}</td>
                 <td>
-                    <a href='edit_customers.php?id={$row['customer_id']}' class='btn btn-warning btn-sm'>Edit</a>
+                    <a href='edit_customers.php?id={$row['customer_id']}' class='btn btn-sm btn-primary'>
+                                <i class='bi bi-pencil-square'></i> Edit
+                            </a>
                     <a href='customers.php?delete={$row['customer_id']}' class='btn btn-danger btn-sm' onclick='return confirm(\"Are you sure you want to delete this customer?\")'>Delete</a>
                 </td>
             </tr>";
