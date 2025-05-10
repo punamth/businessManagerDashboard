@@ -9,7 +9,10 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $user_id = $_SESSION['user_id'];
+
+// Fetch invoice data, including customer name
 $result = $conn->query("SELECT * FROM invoices WHERE user_id = $user_id ORDER BY invoice_date DESC");
+
 ?>
 
 <!DOCTYPE html>

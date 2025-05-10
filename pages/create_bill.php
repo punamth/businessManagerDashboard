@@ -59,7 +59,7 @@ while ($row = $stockItems->fetch_assoc()) {
                 </div>
 
                 <div class="col-md-3">
-                    <input type="text" class="form-control quantity" name="quantity[]" placeholder="Quantity" required oninput="calculateTotal()">
+                    <input type="number" name="quantity[]" class="form-control" min="1" required>
                 </div>
 
                 <div class="col-md-3">

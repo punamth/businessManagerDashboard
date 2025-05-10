@@ -88,7 +88,6 @@ if (isset($_SESSION['user_id'])) {
 
             <div class="d-flex justify-content-between mt-3">
                 <p><a href="register.php">Register</a></p>
-                <p><a href="forgot_password.php">Forgot Password?</a></p>
             </div>
         </form>
     </div>
