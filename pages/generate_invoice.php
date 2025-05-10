@@ -1,7 +1,16 @@
 <?php
+session_start();
 include '../includes/db_connect.php';
 require('../fpdf.php');
 
+// Check user login
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../login.php");
+    exit;
+}
+$user_id = $_SESSION['user_id'];
+
+// Process form submission
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Collect form data
     $invoice_date = $_POST['invoice_date'];
@@ -18,23 +27,39 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     $amount_due = $total_amount - $amount_paid;
 
-    // Insert into database (optional, if you want to save invoices)
-    $stmt = $conn->prepare("INSERT INTO invoices (invoice_date, company_name, company_address, customer_name, customer_address, total_amount, amount_paid, balance_due, payment_method) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("ssssssdds", $invoice_date, $company_name, $company_address, $customer_name, $customer_address, $total_amount, $amount_paid, $amount_due, $payment_method);
+    // Insert invoice into database
+    $stmt = $conn->prepare("INSERT INTO invoices (invoice_date, company_name, company_address, customer_name, customer_address, total_amount, amount_paid, balance_due, payment_method, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("ssssssddsi", $invoice_date, $company_name, $company_address, $customer_name, $customer_address, $total_amount, $amount_paid, $amount_due, $payment_method, $user_id);
     $stmt->execute();
-    $invoice_id = $stmt->insert_id;
+    $invoice_id = $stmt->insert_id;  // Get the last inserted invoice ID
     $stmt->close();
 
-    $stmt = $conn->prepare("INSERT INTO invoice_items (invoice_id, item_name, quantity, price) VALUES (?, ?, ?, ?)");
+    // Insert invoice items into database
+    $stmt = $conn->prepare("INSERT INTO invoice_items (invoice_id, item_name, quantity, price, user_id) VALUES (?, ?, ?, ?, ?)");
     foreach ($item_names as $index => $item_name) {
         $quantity = $quantities[$index];
         $price = $prices[$index];
-        $stmt->bind_param("isid", $invoice_id, $item_name, $quantity, $price);
+        $stmt->bind_param("isidi", $invoice_id, $item_name, $quantity, $price, $user_id);
         $stmt->execute();
     }
+
     $stmt->close();
 
-    // Start FPDF
+    // Decrease stock quantity after invoice generation
+    foreach ($item_names as $index => $item_name) {
+        $quantity = $quantities[$index];
+
+        // Convert item name to uppercase for case-insensitive matching
+        $item_name_upper = strtoupper($item_name);
+
+        // Update stock quantity
+        $update_stmt = $conn->prepare("UPDATE stock SET quantity = quantity - ? WHERE UPPER(item_name) = ?");
+        $update_stmt->bind_param("is", $quantity, $item_name_upper);
+        $update_stmt->execute();
+        $update_stmt->close();
+    }
+
+    // Start FPDF for PDF generation
     $pdf = new FPDF();
     $pdf->AddPage();
 
@@ -95,6 +120,5 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Output PDF
     $pdf->Output('I', 'Invoice_' . $invoice_id . '.pdf');
-
 }
 ?>

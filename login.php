@@ -1,5 +1,13 @@
 <?php
 include 'includes/db_connect.php';
+session_start(); // Start session to check if already logged in
+
+// Clear any existing session data on the login page
+if (isset($_SESSION['user_id'])) {
+    session_unset();
+    session_destroy();
+    session_start(); // Start a fresh session
+}
 ?>
 
 <!DOCTYPE html>
@@ -37,6 +45,7 @@ include 'includes/db_connect.php';
         }
         .btn-primary:hover {
             background-color:rgb(43, 154, 223);
+        }
         a {
             color:rgb(43, 154, 223);
             text-decoration: none;
@@ -57,30 +66,41 @@ include 'includes/db_connect.php';
             </div>
             
             
-    <div class="mb-3">
-        <label for="password" class="form-label">Password</label>
-        <input type="password" class="form-control" name="password" id="password" required>
-    </div>
-    <div class="mb-3 form-check">
-        <input type="checkbox" class="form-check-input" id="showPassword">
-        <label class="form-check-label" for="showPassword">Show Password</label>
-    </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" name="password" id="password" required>
+            </div>
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="showPassword">
+                <label class="form-check-label" for="showPassword">Show Password</label>
+            </div>
 
+            <button type="submit" class="btn btn-primary w-100">Login</button>
+            <?php
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            if (isset($_SESSION['login_error'])) {
+                echo '<div class="alert alert-danger mt-3" role="alert">' . $_SESSION['login_error'] . '</div>';
+                unset($_SESSION['login_error']);
+            }
+            ?>
 
-        <button type="submit" class="btn btn-primary w-100">Login</button>
-        <p class="mt-3 text-center">Don't have an account? <a href="register.php">Register</a></p>
-    </form>
-</div>
+            <div class="d-flex justify-content-between mt-3">
+                <p><a href="register.php">Register</a></p>
+                <p><a href="forgot_password.php">Forgot Password?</a></p>
+            </div>
+        </form>
+    </div>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
-
-</body>
-</html>
-
-<script>
+    
+    <script>
         document.getElementById("showPassword").addEventListener("change", function () {
             var passwordInput = document.getElementById("password");
             passwordInput.type = this.checked ? "text" : "password";
         });
     </script>
+</body>
+</html>

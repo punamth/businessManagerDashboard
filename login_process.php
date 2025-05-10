@@ -1,6 +1,12 @@
 <?php
-include 'includes\db_connect.php';
+include 'includes/db_connect.php';
 session_start();
+
+// Clear any existing session data first
+session_unset();
+session_destroy();
+session_start();
+session_regenerate_id(true); // Generate new session ID for security
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = trim($_POST['username']);
@@ -15,11 +21,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($stmt->fetch() && password_verify($password, $hashed_password)) {
         $_SESSION['user_id'] = $user_id;
         $_SESSION['username'] = $username;
+        $_SESSION['login_time'] = time();
         header("Location: index.php");
+        exit();
     } else {
-        echo "Invalid username or password. <a href='login.php'>Try again</a>";
+        $_SESSION['login_error'] = "Incorrect username or password.";
+        header("Location: login.php");
+        exit();
     }
-    
+
     $stmt->close();
 }
 ?>

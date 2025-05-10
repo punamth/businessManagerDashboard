@@ -1,15 +1,26 @@
-
 <?php
 include '../includes/db_connect.php';
+session_start();
 
-// Fetch customers and stocks
-$customers = $conn->query("SELECT customer_name, address FROM customers");
-$stocks = $conn->query("SELECT item_name, price FROM stock");
+// Ensure the user is logged in
+if (!isset($_SESSION['user_id'])) {
+    // Redirect to login page if the user is not logged in
+    header('Location: login.php');
+    exit();
+}
+
+$userId = $_SESSION['user_id'];  // Get the user ID from session
+
+// Fetch customers that the logged-in user has added
+$customers = $conn->query("SELECT customer_name, address FROM customers WHERE user_id = '$userId'");
+
+// Fetch only the items that the logged-in user has added
+$stockItems = $conn->query("SELECT item_name, price FROM stock WHERE user_id = '$userId'");
 
 // Prepare stock data for JavaScript
-$stockItems = [];
-while ($row = $stocks->fetch_assoc()) {
-    $stockItems[] = $row;
+$items = [];
+while ($row = $stockItems->fetch_assoc()) {
+    $items[] = $row;
 }
 ?>
 
@@ -20,9 +31,16 @@ while ($row = $stocks->fetch_assoc()) {
     <title>Invoice Generation</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- Bootstrap CDN -->
+    <!-- Bootstrap CSS & Icons -->
+    <!-- Bootstrap CSS & Icons CDN -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- Home Button -->
+    <a href="../index.php" class="btn btn-outline-primary rounded-pill px-4 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2">
+        <i class="bi bi-house-door-fill"></i>
+        Home
+    </a>
 
     <script>
     function addItem() {
@@ -30,16 +48,13 @@ while ($row = $stocks->fetch_assoc()) {
         let itemHTML = `
             <div class="row mb-2 item-row">
                 <div class="col-md-4">
-                    <select class="form-select item-select" name="item_name[]" onchange="fillItemDetails(this)" required>
+                    <select class="form-select item-select" name="item_name[]" onchange="fillItemPrice(this)" required>
                         <option value="" disabled selected>Select Item</option>
-                        <?php 
-                        // Reset pointer before while loop again
-                        $stocks->data_seek(0); 
-                        while($row = $stocks->fetch_assoc()): ?>
-                            <option value='<?php echo htmlspecialchars(json_encode($row)); ?>'>
-                                <?php echo htmlspecialchars($row['item_name']); ?>
+                        <?php foreach($items as $item): ?>
+                            <option value="<?php echo htmlspecialchars($item['item_name']); ?>" data-price="<?php echo htmlspecialchars($item['price']); ?>">
+                                <?php echo htmlspecialchars($item['item_name']); ?>
                             </option>
-                        <?php endwhile; ?>
+                        <?php endforeach; ?>
                     </select>
                 </div>
 
@@ -52,7 +67,7 @@ while ($row = $stocks->fetch_assoc()) {
                 </div>
 
                 <div class="col-md-2">
-                    <button type="button" class="btn btn-danger w-100" onclick="removeItem(this)">Remove</button>
+                    <button type="button" class="btn btn-danger" onclick="removeItem(this)">Remove</button>
                 </div>
             </div>
         `;
@@ -83,14 +98,13 @@ while ($row = $stocks->fetch_assoc()) {
         document.getElementById('invoice_date').value = today;
     }
 
-    // 👇 Only one clean version of fillItemDetails
-    function fillItemDetails(select) {
-        let itemData = JSON.parse(select.value);
+    function fillItemPrice(select) {
+        let price = select.options[select.selectedIndex].getAttribute('data-price');
         let itemRow = select.closest('.item-row');
         let priceInput = itemRow.querySelector('.price');
 
         if (priceInput) {
-            priceInput.value = itemData.price;
+            priceInput.value = price;
             calculateTotal();
         }
     }
@@ -104,7 +118,6 @@ while ($row = $stocks->fetch_assoc()) {
     }
 </script>
 
-    </script>
 </head>
 
 <body class="bg-light" onload="setDefaultDate()">
@@ -162,13 +175,12 @@ while ($row = $stocks->fetch_assoc()) {
                 <!-- 🛒 Items Section -->
                 <h5 class="mb-3">Items</h5>
                 <div id="items-container">
-                    <!-- Default one row -->
                     <div class="row mb-2 item-row">
                         <div class="col-md-4">
-                            <select class="form-select item-select" name="item_name[]" onchange="fillItemDetails(this)" required>
+                            <select class="form-select item-select" name="item_name[]" onchange="fillItemPrice(this)" required>
                                 <option value="" disabled selected>Select Item</option>
-                                <?php foreach($stockItems as $item): ?>
-                                    <option value='<?php echo json_encode($item); ?>'>
+                                <?php foreach($items as $item): ?>
+                                    <option value="<?php echo htmlspecialchars($item['item_name']); ?>" data-price="<?php echo htmlspecialchars($item['price']); ?>">
                                         <?php echo htmlspecialchars($item['item_name']); ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -184,7 +196,7 @@ while ($row = $stocks->fetch_assoc()) {
                         </div>
 
                         <div class="col-md-2">
-                            <button type="button" class="btn btn-danger w-100" onclick="removeItem(this)">Remove</button>
+                            <button type="button" class="btn btn-danger" onclick="removeItem(this)">Remove</button>
                         </div>
                     </div>
                 </div>
@@ -206,7 +218,7 @@ while ($row = $stocks->fetch_assoc()) {
 
                 <div class="mb-3">
                     <label class="form-label">Payment Method:</label>
-                    <select name="payment_method" class="form-select" >
+                    <select name="payment_method" class="form-select">
                         <option value="" disabled selected>Select Payment Method</option>
                         <option value="Cash">Cash</option>
                         <option value="Credit Card">Credit Card</option>
