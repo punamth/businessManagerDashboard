@@ -1,8 +1,7 @@
 <?php
-include '../includes/db_connect.php';
 session_start();
+include '../includes/db_connect.php';
 
-// Redirect to login if not logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../login.php");
     exit;
@@ -10,27 +9,13 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// Check if expense ID is provided
 if (!isset($_GET['id'])) {
     die("Expense ID not provided.");
 }
 
-$expense_id = $_GET['id'];
+$expense_id = intval($_GET['id']); // Sanitize
 
-// Fetch existing expense data (only if owned by this user)
-$stmt = $conn->prepare("SELECT * FROM expenses WHERE expense_id = ? AND user_id = ?");
-$stmt->bind_param("ii", $expense_id, $user_id);
-$stmt->execute();
-$result = $stmt->get_result();
-
-if ($result->num_rows == 0) {
-    die("Expense not found or access denied.");
-}
-
-$expense = $result->fetch_assoc();
-$stmt->close();
-
-// Update Expense Logic
+// Update Expense
 if (isset($_POST['update_expense'])) {
     $description = $_POST['description'];
     $amount = $_POST['amount'];
@@ -43,21 +28,30 @@ if (isset($_POST['update_expense'])) {
         header('Location: expenses.php');
         exit();
     } else {
-        echo "<div class='alert alert-danger'>Error: " . $conn->error . "</div>";
-    
+        echo "<div class='alert alert-danger'>Error updating expense: " . $conn->error . "</div>";
     }
-
-    print_r($_GET); // remove after testing
 
     $stmt->close();
 }
+
+// Fetch current data
+$stmt = $conn->prepare("SELECT * FROM expenses WHERE expense_id = ? AND user_id = ?");
+$stmt->bind_param("ii", $expense_id, $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result->num_rows === 0) {
+    die("Expense not found or access denied.");
+}
+
+$expense = $result->fetch_assoc();
+$stmt->close();
 ?>
 
 <!DOCTYPE html>
 <html>
 <head>
     <title>Edit Expense</title>
-    <!-- Bootstrap CSS & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -68,7 +62,6 @@ if (isset($_POST['update_expense'])) {
 </head>
 <body>
 
-<!-- Home Button -->
 <div class="mb-3">
     <a href="../index.php" class="btn btn-outline-primary rounded-pill px-4 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2">
         <i class="bi bi-house-door-fill"></i> Home

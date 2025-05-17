@@ -29,31 +29,6 @@ if (isset($_GET['delete'])) {
     }
 
     $stmt->close();
-    
-    header('Content-Type: application/json'); // Ensure the response is in JSON format
-
-    // Database connection
-    $connection = new mysqli("localhost", "root", "", "your_database_name");
-
-    if ($connection->connect_error) {
-        die(json_encode(['error' => 'Connection failed: ' . $connection->connect_error]));
-    }
-
-    $query = "SELECT * FROM customers";
-    $result = $connection->query($query);
-
-    // Check if query was successful
-    if ($result) {
-        $customers = [];
-        while ($row = $result->fetch_assoc()) {
-            $customers[] = $row;
-        }
-        echo json_encode($customers); // Return customers as JSON
-    } else {
-        echo json_encode(['error' => 'Query failed: ' . $connection->error]);
-    }
-
-    $connection->close();
 
 }
 

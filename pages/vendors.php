@@ -27,8 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_vendor'])) {
 }
 
 // Handle Delete Vendor
-if (isset($_GET['delete'])) {
-    $vendor_id = $_GET['delete'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_vendor'])) {
+    $vendor_id = $_POST['vendor_id'];
 
     $stmt = $conn->prepare("DELETE FROM vendors WHERE vendor_id = ? AND user_id = ?");
     $stmt->bind_param("ii", $vendor_id, $user_id);
@@ -41,22 +41,12 @@ if (isset($_GET['delete'])) {
     $stmt->close();
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Vendors</title>
-    <!-- Bootstrap CSS & Icons -->
     <!-- Bootstrap CSS & Icons CDN -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-
-    <!-- Home Button -->
-    <a href="../index.php" class="btn btn-outline-primary rounded-pill px-4 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2">
-        <i class="bi bi-house-door-fill"></i>
-        Home
-    </a>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -66,12 +56,17 @@ if (isset($_GET['delete'])) {
     </style>
 </head>
 <body>
+<div class="mb-3">
+    <a href="../index.php" class="btn btn-outline-primary rounded-pill px-4 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2">
+        <i class="bi bi-house-door-fill"></i> Home
+    </a>
+</div>
 
 <div class="container">
     <h2 class="text-center mb-4">Vendor Details</h2>
 
     <?php if (isset($error)): ?>
-        <div class="alert alert-danger"><?= $error ?></div>
+        <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
     <?php endif; ?>
 
     <!-- Add Vendor Form -->
@@ -105,35 +100,38 @@ if (isset($_GET['delete'])) {
         </thead>
         <tbody>
             <?php
-            $result = $conn->prepare("SELECT * FROM vendors WHERE user_id = ? ORDER BY vendor_id ASC");
-            $result->bind_param("i", $user_id);
-            $result->execute();
-            $vendors = $result->get_result();
+            $stmt = $conn->prepare("SELECT * FROM vendors WHERE user_id = ? ORDER BY vendor_id ASC");
+            $stmt->bind_param("i", $user_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
             $counter = 1;
 
-            while ($row = $vendors->fetch_assoc()) {
+            while ($row = $result->fetch_assoc()) {
                 echo "<tr>
                         <td>{$counter}</td>
                         <td>" . htmlspecialchars($row['name']) . "</td>
                         <td>" . htmlspecialchars($row['contact_info']) . "</td>
                         <td>" . htmlspecialchars($row['address']) . "</td>
                         <td>
-                            <a href='edit_vendors.php?id={$row['vendor_id']}' class='btn btn-sm btn-primary'>
+                            <a href='edit_vendors.php?id={$row['vendor_id']}' class='btn btn-sm btn-primary me-1'>
                                 <i class='bi bi-pencil-square'></i> Edit
                             </a>
-                            <a href='vendors.php?delete={$row['vendor_id']}' class='btn btn-sm btn-danger' onclick='return confirm(\"Are you sure you want to delete this vendor?\")'>
-                                <i class='bi bi-trash'></i> Delete
-                            </a>
+                            <form method='POST' style='display:inline;' onsubmit='return confirm(\"Are you sure you want to delete this vendor?\");'>
+                                <input type='hidden' name='vendor_id' value='{$row['vendor_id']}'>
+                                <button type='submit' name='delete_vendor' class='btn btn-sm btn-danger'>
+                                    <i class='bi bi-trash'></i> Delete
+                                </button>
+                            </form>
                         </td>
                     </tr>";
                 $counter++;
             }
 
-            $result->close();
+            $stmt->close();
+            $conn->close();
             ?>
         </tbody>
     </table>
 </div>
-
 </body>
 </html>

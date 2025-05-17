@@ -1,8 +1,7 @@
 <?php
-include '../includes/db_connect.php';
 session_start();
+include '../includes/db_connect.php';
 
-// Redirect to login if not logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../login.php");
     exit;
@@ -10,70 +9,52 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// Check if expense ID is provided
-if (!isset($_GET['id'])) {
-    die("Expense ID not provided.");
-}
+// Handle Update Vendor
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_vendor'])) {
+    $vendor_id = $_POST['vendor_id'];
+    $name = $_POST['name'];
+    $contact_info = $_POST['contact_info'];
+    $address = $_POST['address'];
 
-$expense_id = $_GET['id'];
-
-// Fetch existing expense data (only if owned by this user)
-$stmt = $conn->prepare("SELECT * FROM expenses WHERE expense_id = ? AND user_id = ?");
-$stmt->bind_param("ii", $expense_id, $user_id);
-$stmt->execute();
-$result = $stmt->get_result();
-
-if ($result->num_rows == 0) {
-    die("Expense not found or access denied.");
-}
-
-$expense = $result->fetch_assoc();
-$stmt->close();
-
-// Update Expense Logic
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_expense'])) {
-    $description = $_POST['description'];
-    $amount = $_POST['amount'];
-    $date = $_POST['date'];
-
-    $stmt = $conn->prepare("UPDATE expenses SET description = ?, amount = ?, date = ? WHERE expense_id = ? AND user_id = ?");
-    $stmt->bind_param("sdsii", $description, $amount, $date, $expense_id, $user_id);
-
+    $stmt = $conn->prepare("UPDATE vendors SET name = ?, contact_info = ?, address = ? WHERE vendor_id = ? AND user_id = ?");
+    $stmt->bind_param("sssii", $name, $contact_info, $address, $vendor_id, $user_id);
     if ($stmt->execute()) {
-        header('Location: expenses.php');
+        // Redirect to the same page to fetch updated data
+        header("Location: vendors.php?id=" . $vendor_id);
         exit();
     } else {
-        $error = "Error updating expense: " . $conn->error;
+        $error = "Error updating vendor: " . $conn->error;
     }
-
     $stmt->close();
 }
 
-// Handle expense deletion
-if (isset($_POST['delete_expense'])) {
-    $delete_sql = "DELETE FROM expenses WHERE expense_id = ? AND user_id = ?";
-    $stmt_delete = $conn->prepare($delete_sql);
-    $stmt_delete->bind_param("ii", $expense_id, $user_id);
+// Fetch Vendor Data
+if (isset($_GET['id'])) {
+    $vendor_id = $_GET['id'];
 
-    if ($stmt_delete->execute()) {
-        header("Location: expenses.php");
-        exit();
-    } else {
-        $error = "Error deleting expense: " . $conn->error;
+    $stmt = $conn->prepare("SELECT * FROM vendors WHERE vendor_id = ? AND user_id = ?");
+    $stmt->bind_param("ii", $vendor_id, $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $vendor = $result->fetch_assoc();
+    $stmt->close();
+
+    if (!$vendor) {
+        echo "Vendor not found.";
+        exit;
     }
-
-    $stmt_delete->close();
+} else {
+    echo "Invalid vendor ID.";
+    exit;
 }
-
-$conn->close();
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <title>Edit Vendor</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Expense</title>
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -91,39 +72,42 @@ $conn->close();
 </div>
 
 <div class="container">
-    <h2 class="text-center mb-4 text-primary">Edit Expense</h2>
+    <h2 class="text-center mb-4 text-primary">Edit Vendor</h2>
 
     <?php if (isset($error)): ?>
-        <div class="alert alert-danger"><?= $error ?></div>
+        <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
     <?php endif; ?>
 
-    <form method="POST">
+    <form method="POST" action="edit_vendors.php?id=<?= $vendor['vendor_id'] ?>">
+        <input type="hidden" name="vendor_id" value="<?= $vendor['vendor_id'] ?>">
+
         <div class="mb-3">
-            <label for="description" class="form-label">Description</label>
-            <input type="text" class="form-control" name="description" value="<?= htmlspecialchars($expense['description']) ?>" required>
+            <label for="name" class="form-label">Vendor Name</label>
+            <input type="text" class="form-control" id="name" name="name" value="<?= htmlspecialchars($vendor['name']) ?>" required>
         </div>
 
         <div class="mb-3">
-            <label for="amount" class="form-label">Amount</label>
-            <input type="number" step="0.01" class="form-control" name="amount" value="<?= htmlspecialchars($expense['amount']) ?>" required>
+            <label for="contact_info" class="form-label">Contact Info</label>
+            <input type="text" class="form-control" id="contact_info" name="contact_info" value="<?= htmlspecialchars($vendor['contact_info']) ?>" required>
         </div>
 
         <div class="mb-3">
-            <label for="date" class="form-label">Date</label>
-            <input type="date" class="form-control" name="date" value="<?= htmlspecialchars($expense['date']) ?>" required>
+            <label for="address" class="form-label">Address</label>
+            <input type="text" class="form-control" id="address" name="address" value="<?= htmlspecialchars($vendor['address']) ?>" required>
         </div>
 
         <div class="d-flex justify-content-between align-items-center">
             <div>
-                <button type="submit" name="update_expense" class="btn btn-success btn-space">
-                    <i class="bi bi-check-circle"></i> Update Expense
+                <button type="submit" name="update_vendor" class="btn btn-success btn-space">
+                    <i class="bi bi-check-circle"></i> Update Vendor
                 </button>
-                <a href="expenses.php" class="btn btn-secondary">
+                <a href="vendors.php" class="btn btn-secondary">
                     <i class="bi bi-arrow-left"></i> Back
                 </a>
             </div>
-            <form method="POST" onsubmit="return confirm('Are you sure you want to delete this expense?');">
-                <button type="submit" name="delete_expense" class="btn btn-danger">
+            <form method="POST" onsubmit="return confirm('Are you sure you want to delete this vendor?');">
+                <input type="hidden" name="vendor_id" value="<?= $vendor['vendor_id'] ?>">
+                <button type="submit" name="delete_vendor" class="btn btn-danger">
                     <i class="bi bi-trash-fill"></i> Delete
                 </button>
             </form>

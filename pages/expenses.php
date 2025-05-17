@@ -2,7 +2,7 @@
 session_start();
 include '../includes/db_connect.php';
 
-// Redirect to login if not logged in
+// Redirect if not logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../login.php");
     exit;
@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// Add Expense Logic
+// Add Expense
 if (isset($_POST['add_expense'])) {
     $description = $_POST['description'];
     $amount = $_POST['amount'];
@@ -28,7 +28,7 @@ if (isset($_POST['add_expense'])) {
     $stmt->close();
 }
 
-// Delete Expense Logic
+// Delete Expense
 if (isset($_GET['delete'])) {
     $expense_id = $_GET['delete'];
 
@@ -49,7 +49,6 @@ if (isset($_GET['delete'])) {
 <html>
 <head>
     <title>Expenses</title>
-    <!-- Bootstrap CSS & Icons CDN -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -60,7 +59,6 @@ if (isset($_GET['delete'])) {
 </head>
 <body>
 
-<!-- Home Button -->
 <div class="mb-3">
     <a href="../index.php" class="btn btn-outline-primary rounded-pill px-4 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2">
         <i class="bi bi-house-door-fill"></i> Home
@@ -68,7 +66,7 @@ if (isset($_GET['delete'])) {
 </div>
 
 <div class="container mt-3">
-    <h2 class="text-center mb-4">Expenses Tracking</h1>
+    <h2 class="text-center mb-4">Expenses Tracking</h2>
 
     <!-- Add Expense Form -->
     <form action="expenses.php" method="POST" class="mb-4">
@@ -110,16 +108,19 @@ if (isset($_GET['delete'])) {
 
             $counter = 1;
             while ($row = $result->fetch_assoc()) {
+                $eid = $row['expense_id']; // Get ID for debugging
+                echo "<!-- Debug: ID=$eid -->"; // DEBUG
+
                 echo "<tr>
                         <td>{$counter}</td>
                         <td>" . htmlspecialchars($row['description']) . "</td>
                         <td>Rs. " . number_format($row['amount'], 2) . "</td>
                         <td>{$row['date']}</td>
                         <td>
-                            <a href='edit_expenses.php?id={$row['expense_id']}' class='btn btn-sm btn-primary'>
+                            <a href='edit_expenses.php?id={$eid}' class='btn btn-sm btn-primary'>
                                 <i class='bi bi-pencil-square'></i> Edit
                             </a>
-                            <a href='expenses.php?delete={$row['expense_id']}' class='btn btn-sm btn-danger' onclick=\"return confirm('Are you sure you want to delete this expense?');\">
+                            <a href='expenses.php?delete={$eid}' class='btn btn-sm btn-danger' onclick=\"return confirm('Are you sure you want to delete this expense?');\">
                                 <i class='bi bi-trash'></i> Delete
                             </a>
                         </td>
