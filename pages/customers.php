@@ -1,9 +1,15 @@
 <?php
 ob_start();
-include '../includes/db_connect.php';
 session_start();
+include '../includes/db_connect.php';
 
-$user_id = $_SESSION['user_id'];
+// Get logged-in user ID
+$user_id = $_SESSION['user_id'] ?? 0;
+
+// Flash message support
+$message = $_SESSION['message'] ?? null;
+$alert_type = $_SESSION['alert_type'] ?? 'success';
+unset($_SESSION['message'], $_SESSION['alert_type']);
 
 // Add Customer Logic
 if (isset($_POST['add_customer'])) {
@@ -12,43 +18,49 @@ if (isset($_POST['add_customer'])) {
     $phone = $_POST['phone'];
     $address = $_POST['address'];
 
-    // Check for duplicate email for the same user
+    // Check for duplicate email for this user
     $check_stmt = $conn->prepare("SELECT customer_id FROM customers WHERE email = ? AND user_id = ?");
     $check_stmt->bind_param("si", $email, $user_id);
     $check_stmt->execute();
     $check_result = $check_stmt->get_result();
 
     if ($check_result->num_rows > 0) {
-        $error = "Email already exists. Please use a different one.";
+        $_SESSION['message'] = "Email already exists. Please use a different one.";
+        $_SESSION['alert_type'] = "danger";
     } else {
         // Insert new customer
         $stmt = $conn->prepare("INSERT INTO customers (customer_name, email, phone, address, user_id) VALUES (?, ?, ?, ?, ?)");
         $stmt->bind_param("ssssi", $customer_name, $email, $phone, $address, $user_id);
         if ($stmt->execute()) {
-            header("Location: customers.php");
-            exit();
+            $_SESSION['message'] = "Customer added successfully!";
+            $_SESSION['alert_type'] = "success";
         } else {
-            $error = "Error adding customer: " . $conn->error;
+            $_SESSION['message'] = "Error adding customer: " . $conn->error;
+            $_SESSION['alert_type'] = "danger";
         }
         $stmt->close();
     }
     $check_stmt->close();
+    header("Location: customers.php");
+    exit();
 }
 
 // Handle Delete Customer Logic
 if (isset($_GET['delete'])) {
     $delete_id = $_GET['delete'];
 
-    // Ensure the customer belongs to the logged-in user
     $delete_stmt = $conn->prepare("DELETE FROM customers WHERE customer_id = ? AND user_id = ?");
     $delete_stmt->bind_param("ii", $delete_id, $user_id);
     if ($delete_stmt->execute()) {
-        header("Location: customers.php");
-        exit();
+        $_SESSION['message'] = "Customer deleted successfully!";
+        $_SESSION['alert_type'] = "success";
     } else {
-        $error = "Error deleting customer: " . $conn->error;
+        $_SESSION['message'] = "Error deleting customer: " . $conn->error;
+        $_SESSION['alert_type'] = "danger";
     }
     $delete_stmt->close();
+    header("Location: customers.php");
+    exit();
 }
 ?>
 
@@ -78,9 +90,12 @@ if (isset($_GET['delete'])) {
 <div class="container">
     <h2 class="text-center mb-4">Customer Details</h2>
 
-    <!-- Display error if any -->
-    <?php if (isset($error)): ?>
-        <div class="alert alert-danger"><?php echo $error; ?></div>
+    <!-- Alert Message -->
+    <?php if ($message): ?>
+        <div class="alert alert-<?php echo $alert_type; ?> alert-dismissible fade show" role="alert">
+            <?php echo htmlspecialchars($message); ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
     <?php endif; ?>
 
     <!-- Add Customer Form -->
@@ -120,13 +135,11 @@ if (isset($_GET['delete'])) {
         </thead>
         <tbody>
         <?php
-            // Fetch customers for the current user
             $fetch_stmt = $conn->prepare("SELECT * FROM customers WHERE user_id = ?");
             $fetch_stmt->bind_param("i", $user_id);
             $fetch_stmt->execute();
             $customers = $fetch_stmt->get_result();
             $sn = 1;
-
             while ($row = $customers->fetch_assoc()):
         ?>
             <tr>
@@ -148,6 +161,40 @@ if (isset($_GET['delete'])) {
         </tbody>
     </table>
 </div>
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="confirmDeleteModalLabel">Confirm Deletion</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to delete this customer?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <a href="#" id="confirmDeleteBtn" class="btn btn-danger">Yes, Delete</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const confirmDeleteModal = document.getElementById('confirmDeleteModal');
+    confirmDeleteModal.addEventListener('show.bs.modal', event => {
+        const button = event.relatedTarget;
+        const customerId = button.getAttribute('data-id');
+        const confirmBtn = document.getElementById('confirmDeleteBtn');
+        confirmBtn.href = `customers.php?delete=${customerId}`;
+    });
+</script>
+
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>

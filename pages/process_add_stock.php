@@ -29,7 +29,8 @@ $check_stmt->store_result();
 
 if ($check_stmt->num_rows > 0) {
     // Item already exists
-    echo "<script>alert('Item \"$item_name\" already exists!'); window.location.href='add_stock.php';</script>";
+    header("Location: add_stock.php?status=error&msg=" . urlencode("Item '$item_name' already exists!"));
+    exit();
     $check_stmt->close();
     $conn->close();
     exit();
@@ -41,7 +42,8 @@ $insert_stmt = $conn->prepare("INSERT INTO stock (item_name, quantity, price, us
 $insert_stmt->bind_param("sidi", $item_name, $quantity, $price, $user_id);
 
 if ($insert_stmt->execute()) {
-    echo "<script>alert('Stock added successfully!'); window.location.href='add_stock.php';</script>";
+    header("Location: add_stock.php?status=success&msg=" . urlencode("Stock added successfully!"));
+exit();
 } else {
     echo "Error: " . $insert_stmt->error;
 }

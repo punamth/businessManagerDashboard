@@ -29,7 +29,6 @@ if (isset($_GET['delete'])) {
     }
 
     $stmt->close();
-
 }
 
 // Prepare search query
@@ -140,8 +139,9 @@ $result = $stmt->get_result();
                                     <a href="update_stock.php?id=<?= $item_id ?>" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-pencil-square"></i> Edit
                                     </a>
-                                    <a href="display_stock.php?delete=<?= $item_id ?>" class="btn btn-sm btn-danger" 
-                                       onclick="return confirm('Are you sure you want to delete this item?');">
+                                    <a href="#" class="btn btn-sm btn-danger" 
+                                       data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" 
+                                       data-id="<?= $item_id ?>">
                                         <i class="bi bi-trash"></i> Delete
                                     </a>
                                 </div>
@@ -157,6 +157,37 @@ $result = $stmt->get_result();
         </table>
     </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="confirmDeleteModalLabel">Confirm Deletion</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to delete this stock item?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <a href="#" id="confirmDeleteBtn" class="btn btn-danger">Yes, Delete</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const confirmDeleteModal = document.getElementById('confirmDeleteModal');
+    confirmDeleteModal.addEventListener('show.bs.modal', event => {
+        const button = event.relatedTarget;
+        const itemId = button.getAttribute('data-id');
+        const confirmBtn = document.getElementById('confirmDeleteBtn');
+        confirmBtn.href = `display_stock.php?delete=${itemId}`;
+    });
+</script>
 
 </body>
 </html>

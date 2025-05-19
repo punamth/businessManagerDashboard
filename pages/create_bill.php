@@ -2,22 +2,16 @@
 include '../includes/db_connect.php';
 session_start();
 
-// Ensure the user is logged in
 if (!isset($_SESSION['user_id'])) {
-    // Redirect to login page if the user is not logged in
     header('Location: login.php');
     exit();
 }
 
-$userId = $_SESSION['user_id'];  // Get the user ID from session
+$userId = $_SESSION['user_id'];
 
-// Fetch customers that the logged-in user has added
 $customers = $conn->query("SELECT customer_name, address FROM customers WHERE user_id = '$userId'");
-
-// Fetch only the items that the logged-in user has added
 $stockItems = $conn->query("SELECT item_name, price FROM stock WHERE user_id = '$userId'");
 
-// Prepare stock data for JavaScript
 $items = [];
 while ($row = $stockItems->fetch_assoc()) {
     $items[] = $row;
@@ -31,16 +25,9 @@ while ($row = $stockItems->fetch_assoc()) {
     <title>Invoice Generation</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- Bootstrap CSS & Icons -->
     <!-- Bootstrap CSS & Icons CDN -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-
-    <!-- Home Button -->
-    <a href="../index.php" class="btn btn-outline-primary rounded-pill px-4 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2">
-        <i class="bi bi-house-door-fill"></i>
-        Home
-    </a>
 
     <script>
     function addItem() {
@@ -57,15 +44,12 @@ while ($row = $stockItems->fetch_assoc()) {
                         <?php endforeach; ?>
                     </select>
                 </div>
-
                 <div class="col-md-3">
                     <input type="number" name="quantity[]" class="form-control quantity" min="1" required oninput="calculateTotal()">
                 </div>
-
                 <div class="col-md-3">
                     <input type="number" step="0.01" class="form-control price" name="price[]" placeholder="Price per unit" required oninput="calculateTotal()">
                 </div>
-
                 <div class="col-md-2">
                     <button type="button" class="btn btn-danger" onclick="removeItem(this)">Remove</button>
                 </div>
@@ -91,6 +75,7 @@ while ($row = $stockItems->fetch_assoc()) {
         }
 
         document.getElementById('total_amount').value = totalAmount.toFixed(2);
+        validateAmountPaid();  // Re-validate paid amount
     }
 
     function setDefaultDate() {
@@ -116,11 +101,43 @@ while ($row = $stockItems->fetch_assoc()) {
         document.getElementById("customer_name").value = customerData.customer_name;
         document.getElementById("customer_address").value = customerData.address;
     }
-</script>
 
+    function validateAmountPaid() {
+        const total = parseFloat(document.getElementById('total_amount').value) || 0;
+        const paid = parseFloat(document.getElementById('amount_paid').value) || 0;
+        const error = document.getElementById('amount_error');
+
+        if (paid > total) {
+            error.textContent = 'Amount paid cannot be more than the total amount.';
+            document.getElementById('amount_paid').classList.add('is-invalid');
+        } else {
+            error.textContent = '';
+            document.getElementById('amount_paid').classList.remove('is-invalid');
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('amount_paid').addEventListener('input', validateAmountPaid);
+
+        document.querySelector('form').addEventListener('submit', function (e) {
+            const total = parseFloat(document.getElementById('total_amount').value) || 0;
+            const paid = parseFloat(document.getElementById('amount_paid').value) || 0;
+            if (paid > total) {
+                e.preventDefault();
+                document.getElementById('amount_error').textContent = 'Amount paid cannot be more than the total amount.';
+                document.getElementById('amount_paid').classList.add('is-invalid');
+            }
+        });
+    });
+    </script>
 </head>
 
 <body class="bg-light" onload="setDefaultDate()">
+    <div class="mb-3">
+    <a href="../index.php" class="btn btn-outline-primary rounded-pill px-4 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2">
+        <i class="bi bi-house-door-fill"></i> Home
+    </a>
+</div>
 
 <div class="container mt-5">
     <div class="card shadow">
@@ -131,13 +148,11 @@ while ($row = $stockItems->fetch_assoc()) {
         <div class="card-body">
             <form action="generate_invoice.php" method="post">
 
-                <!-- 📅 Invoice Date -->
                 <div class="mb-3">
                     <label class="form-label">Invoice Date:</label>
                     <input type="date" id="invoice_date" name="invoice_date" class="form-control" required>
                 </div>
 
-                <!-- 🏢 Company Details -->
                 <div class="mb-3">
                     <label class="form-label">Company Name:</label>
                     <input type="text" name="company_name" class="form-control" placeholder="Enter company name" required>
@@ -148,7 +163,6 @@ while ($row = $stockItems->fetch_assoc()) {
                     <input type="text" name="company_address" class="form-control" placeholder="Enter company address" required>
                 </div>
 
-                <!-- 👤 Customer Selection -->
                 <div class="mb-3">
                     <label class="form-label">Select Customer:</label>
                     <select id="customer_select" class="form-select" onchange="fillCustomerDetails()" required>
@@ -161,7 +175,6 @@ while ($row = $stockItems->fetch_assoc()) {
                     </select>
                 </div>
 
-                <!-- ✏️ Auto-filled Customer Details -->
                 <div class="mb-3">
                     <label class="form-label">Customer Name:</label>
                     <input type="text" id="customer_name" name="customer_name" class="form-control" required readonly>
@@ -172,7 +185,6 @@ while ($row = $stockItems->fetch_assoc()) {
                     <input type="text" id="customer_address" name="customer_address" class="form-control" required readonly>
                 </div>
 
-                <!-- 🛒 Items Section -->
                 <h5 class="mb-3">Items</h5>
                 <div id="items-container">
                     <div class="row mb-2 item-row">
@@ -188,7 +200,7 @@ while ($row = $stockItems->fetch_assoc()) {
                         </div>
 
                         <div class="col-md-3">
-                            <input type="text" class="form-control quantity" name="quantity[]" placeholder="Quantity" required oninput="calculateTotal()">
+                            <input type="number" class="form-control quantity" name="quantity[]" placeholder="Quantity" required oninput="calculateTotal()">
                         </div>
 
                         <div class="col-md-3">
@@ -205,7 +217,6 @@ while ($row = $stockItems->fetch_assoc()) {
                     <button type="button" class="btn btn-primary" onclick="addItem()">Add More Items</button>
                 </div>
 
-                <!-- 💰 Payment Details -->
                 <div class="mb-3">
                     <label class="form-label">Total Amount:</label>
                     <input type="text" id="total_amount" name="total_amount" class="form-control" readonly>
@@ -213,7 +224,8 @@ while ($row = $stockItems->fetch_assoc()) {
 
                 <div class="mb-3">
                     <label class="form-label">Amount Paid:</label>
-                    <input type="number" step="0.01" name="amount_paid" class="form-control" placeholder="Enter amount paid" required>
+                    <input type="number" step="0.01" id="amount_paid" name="amount_paid" class="form-control" placeholder="Enter amount paid" required>
+                    <div id="amount_error" class="text-danger small mt-1"></div>
                 </div>
 
                 <div class="mb-3">
